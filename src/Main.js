@@ -59,15 +59,27 @@ export default function Main() {
     const handleAdd = (item) => {
         const price = item.price;
 
-        setCartState([...cartState, item]);
+        let itemExist = cartState.find((i) => i.id === item.id); //To find if the item exist in state
+
+        if (itemExist) {
+            let newArr = cartState.filter((i) => {
+                if (i.id === item.id) {
+                    i.quantity += 1;
+                }
+                return true;
+            })
+            setCartState(newArr);
+        } else {
+            setCartState([...cartState, { ...item, quantity: 1 }]);
+        }
+
         setTotal(total + price);
     }
 
     const handleDelete = (number) => {
-        console.log("Del: ", number);
         const newArr = cartState.filter((i, index) => {
             if (index === number) {
-                setTotal(total - i.price);
+                setTotal(total - i.price * i.quantity);
                 return false;
             }
             return true;
@@ -77,13 +89,29 @@ export default function Main() {
     }
 
     const handleSubmit = () => {
-        // console.log("submit", JSON.stringify(cartState));
-        const newObj = {
-            orderID: Math.floor(Math.random() * 90000) + 10000,
-            orderAmount: total,
-            orderItems: [...cartState]
+        if (total === 0) {
+            return;
+        } else {
+            const newObj = {
+                orderID: Math.floor(Math.random() * 90000) + 10000,
+                orderAmount: total,
+                orderItems: [...cartState]
+            }
+            console.log(JSON.stringify(newObj)); //Prints the JSON object that is sent through API
+
+            const requestOptions = {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newObj)
+            };
+            fetch('https://janam.free.beeceptor.com/', requestOptions)
+                .then(response => {
+                    if (response.status === 200) {
+                        alert("Order placed successfully");
+                    }
+                })
         }
-        console.log("Submit json: ", JSON.stringify(newObj));
+        setCartState([]); //Clear Cart
     }
 
     useEffect(() => {
@@ -120,10 +148,17 @@ export default function Main() {
                     <span>Total:</span>
                     <span>{total}</span>
                 </div>
-                <div className="cart-submit" onClick={handleSubmit}>
-                    PAY
-                    <p>${total}</p>
-                </div>
+                {total === 0 ?
+                    <div className="cart-submit disabled" onClick={handleSubmit}>
+                        PAY
+                        <p>${total}</p>
+                    </div>
+                    :
+                    <div className="cart-submit" onClick={handleSubmit}>
+                        PAY
+                        <p>${total}</p>
+                    </div>
+                }
             </div>
         </div>
     )
